@@ -4,28 +4,33 @@ A modern web application for accounting and financial management built with Next
 
 ## Features
 
-- Dashboard overview with financial metrics
-- Transaction management
-- Invoice creation and tracking
-- Financial reports
-- Client management
-- User authentication and authorization
+- Interactive dashboard with financial KPIs and metrics
+- Advanced analytics with data visualization and insights
+- Transaction management and tracking
+- Invoice creation, management, and status tracking
+- Client management with behavior analysis
+- Revenue forecasting and subscription metrics
+- User authentication and profile management
+- Customizable settings and preferences
+- Dark/light mode support
 - Responsive design for all devices
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 with App Router
+- **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: (TBD - JWT/NextAuth/Clerk)
-- **Database**: (TBD - PostgreSQL/MongoDB)
-- **Deployment**: (TBD - Vercel/AWS)
+- **State Management**: Zustand
+- **Styling**: Tailwind CSS 4
+- **Charts**: Chart.js with react-chartjs-2
+- **Authentication**: Context-based auth system
+- **Notifications**: React Hot Toast
+- **Development**: Turbopack for faster builds
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18.0 or newer
+- Node.js 20.0 or newer
 
 ### Installation
 
@@ -57,18 +62,49 @@ A modern web application for accounting and financial management built with Next
 accounting-saas/
 ├── src/
 │   ├── app/
-│   │   ├── dashboard/        # Dashboard pages
+│   │   ├── dashboard/        # Dashboard and feature pages
+│   │   │   ├── analytics/    # Business insights and charts
+│   │   │   ├── clients/      # Client management
+│   │   │   ├── invoices/     # Invoice management 
+│   │   │   ├── reports/      # Financial reports
+│   │   │   ├── transactions/ # Transaction tracking
+│   │   │   ├── settings/     # User preferences
+│   │   │   └── notifications/# User notifications
+│   │   ├── login/           # Authentication
 │   │   ├── layout.tsx        # Root layout
 │   │   └── page.tsx          # Home page
 │   ├── components/           # Reusable components
-│   │   ├── Navbar.tsx        # Top navigation bar
-│   │   └── Sidebar.tsx       # Sidebar navigation
+│   │   ├── analytics/        # Analytics components
+│   │   └── [other component folders]
+│   ├── context/              # Application contexts
+│   │   ├── AuthContext.tsx   # Authentication
+│   │   ├── SettingsContext.tsx # User preferences
+│   │   └── NotificationContext.tsx # Notifications
+│   ├── hooks/                # Custom hooks
+│   │   ├── useInvoiceAnalytics.ts
+│   │   ├── useClientAnalytics.ts
+│   │   └── useRevenueForecast.ts
+│   ├── utils/                # Utility functions
+│   │   ├── invoiceStore.ts   # Invoice state management
+│   │   ├── transactionStore.ts # Transaction state management
+│   │   └── dateUtils.ts      # Date formatting utilities
 │   └── styles/               # Global styles
 ├── public/                   # Static assets
 └── package.json              # Dependencies
 ```
 
-## Development
+## Key Features In Detail
+
+### Analytics Dashboard
+Comprehensive business insights including revenue distribution, invoice status, client behavior analysis, and forecasting.
+
+### Client Management
+Track client interactions, identify valuable clients, and monitor churn risk with built-in analytics.
+
+### Invoice System
+Create, track, and manage invoices with status monitoring and payment analytics.
+
+### Development
 
 ### Running Tests
 
