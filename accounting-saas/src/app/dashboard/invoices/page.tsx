@@ -4,55 +4,59 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatDate, formatCurrency } from '@/utils/dateUtils';
-import useTransactionStore from '@/utils/transactionStore';
+import useInvoiceStore from '@/utils/invoiceStore';
 
-export default function Transactions() {
+export default function Invoices() {
   const router = useRouter();
-  const transactions = useTransactionStore(state => state.transactions);
+  const invoices = useInvoiceStore(state => state.invoices);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
+  const [sortBy, setSortBy] = useState('issueDate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Number of transactions per page
+  const itemsPerPage = 5; // Number of invoices per page
   
   // Reset to page 1 when the component mounts
   useEffect(() => {
     setCurrentPage(1);
   }, []);
 
-  // Filter and sort transactions
-  const filteredTransactions = transactions
-    .filter(transaction => {
+  // Filter and sort invoices
+  const filteredInvoices = invoices
+    .filter(invoice => {
       const matchesSearch = search === '' || 
-        transaction.description.toLowerCase().includes(search.toLowerCase()) ||
-        transaction.id.toLowerCase().includes(search.toLowerCase());
+        invoice.clientName.toLowerCase().includes(search.toLowerCase()) ||
+        invoice.id.toLowerCase().includes(search.toLowerCase());
       
-      const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
-      const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
-      const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
       
-      return matchesSearch && matchesType && matchesCategory && matchesStatus;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      if (sortBy === 'date') {
+      if (sortBy === 'issueDate') {
         return sortOrder === 'asc' 
-          ? new Date(a.date).getTime() - new Date(b.date).getTime()
-          : new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else if (sortBy === 'amount') {
-        return sortOrder === 'asc' ? a.amount - b.amount : b.amount - a.amount;
+          ? new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime()
+          : new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime();
+      } else if (sortBy === 'dueDate') {
+        return sortOrder === 'asc' 
+          ? new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          : new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+      } else if (sortBy === 'total') {
+        return sortOrder === 'asc' ? a.total - b.total : b.total - a.total;
+      } else if (sortBy === 'client') {
+        return sortOrder === 'asc'
+          ? a.clientName.localeCompare(b.clientName)
+          : b.clientName.localeCompare(a.clientName);
       }
       return 0;
     });
 
   // Calculate pagination values
-  const totalItems = filteredTransactions.length;
+  const totalItems = filteredInvoices.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredInvoices.slice(indexOfFirstItem, indexOfLastItem);
 
   // Handle page changes
   const handlePageChange = (pageNumber: number) => {
@@ -61,16 +65,18 @@ export default function Transactions() {
     }
   };
 
-  // Calculate totals based on filtered transactions
-  const totalIncome = filteredTransactions
-    .filter(t => t.type === 'Credit')
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  // Calculate summary statistics
+  const totalUnpaid = filteredInvoices
+    .filter(invoice => invoice.status === 'Unpaid' || invoice.status === 'Overdue')
+    .reduce((sum, invoice) => sum + invoice.total, 0);
     
-  const totalExpenses = filteredTransactions
-    .filter(t => t.type === 'Debit')
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalPaid = filteredInvoices
+    .filter(invoice => invoice.status === 'Paid')
+    .reduce((sum, invoice) => sum + invoice.total, 0);
 
-  const netAmount = totalIncome - totalExpenses;
+  const totalPartiallyPaid = filteredInvoices
+    .filter(invoice => invoice.status === 'Partially Paid')
+    .reduce((sum, invoice) => sum + invoice.total, 0);
 
   // Generate page numbers to display
   const getPageNumbers = () => {
@@ -100,29 +106,44 @@ export default function Transactions() {
     return pageNumbers;
   };
 
+  // Helper function to get status style
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'Paid':
+        return 'bg-green-100 text-green-800';
+      case 'Partially Paid':
+        return 'bg-blue-100 text-blue-800';
+      case 'Unpaid':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Overdue':
+        return 'bg-red-100 text-red-800';
+      case 'Cancelled':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-        <p className="text-gray-500 mt-1">Manage and track your financial transactions</p>
+        <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+        <p className="text-gray-500 mt-1">Manage and track your client invoices</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-sm font-medium text-gray-500">Total Income</h2>
-          <p className="text-xl font-bold text-green-600 mt-1">{formatCurrency(totalIncome)}</p>
+          <h2 className="text-sm font-medium text-gray-500">Unpaid Invoices</h2>
+          <p className="text-xl font-bold text-yellow-600 mt-1">{formatCurrency(totalUnpaid)}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-sm font-medium text-gray-500">Total Expenses</h2>
-          <p className="text-xl font-bold text-red-600 mt-1">{formatCurrency(totalExpenses)}</p>
+          <h2 className="text-sm font-medium text-gray-500">Paid Invoices</h2>
+          <p className="text-xl font-bold text-green-600 mt-1">{formatCurrency(totalPaid)}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-sm font-medium text-gray-500">Net Amount</h2>
-          <p className={`text-xl font-bold mt-1 ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(Math.abs(netAmount))}
-            <span className="text-sm font-normal ml-1">{netAmount >= 0 ? 'Profit' : 'Loss'}</span>
-          </p>
+          <h2 className="text-sm font-medium text-gray-500">Partially Paid</h2>
+          <p className="text-xl font-bold text-blue-600 mt-1">{formatCurrency(totalPartiallyPaid)}</p>
         </div>
       </div>
 
@@ -132,7 +153,7 @@ export default function Transactions() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Search transactions..."
+              placeholder="Search invoices..."
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={(e) => {
@@ -141,33 +162,7 @@ export default function Transactions() {
               }}
             />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <select 
-              className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setCurrentPage(1); // Reset to first page on filter
-              }}
-            >
-              <option value="all">All Types</option>
-              <option value="Credit">Credit</option>
-              <option value="Debit">Debit</option>
-            </select>
-            
-            <select 
-              className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                setCurrentPage(1); // Reset to first page on filter
-              }}
-            >
-              <option value="all">All Categories</option>
-              <option value="Income">Income</option>
-              <option value="Expense">Expense</option>
-            </select>
-            
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <select 
               className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
@@ -176,9 +171,12 @@ export default function Transactions() {
                 setCurrentPage(1); // Reset to first page on filter
               }}
             >
-              <option value="all">All Status</option>
-              <option value="Completed">Completed</option>
-              <option value="Pending">Pending</option>
+              <option value="all">All Statuses</option>
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+              <option value="Partially Paid">Partially Paid</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
             
             <select 
@@ -191,35 +189,38 @@ export default function Transactions() {
                 setCurrentPage(1); // Reset to first page on sort
               }}
             >
-              <option value="date-desc">Date (Newest)</option>
-              <option value="date-asc">Date (Oldest)</option>
-              <option value="amount-desc">Amount (Highest)</option>
-              <option value="amount-asc">Amount (Lowest)</option>
+              <option value="issueDate-desc">Issue Date (Newest)</option>
+              <option value="issueDate-asc">Issue Date (Oldest)</option>
+              <option value="dueDate-desc">Due Date (Newest)</option>
+              <option value="dueDate-asc">Due Date (Oldest)</option>
+              <option value="total-desc">Amount (Highest)</option>
+              <option value="total-asc">Amount (Lowest)</option>
+              <option value="client-asc">Client (A-Z)</option>
+              <option value="client-desc">Client (Z-A)</option>
             </select>
           </div>
         </div>
         
         <div className="flex justify-end">
           <Link 
-            href="/dashboard/transactions/new"
+            href="/dashboard/invoices/new"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            + Add Transaction
+            + Create Invoice
           </Link>
         </div>
       </div>
 
-      {/* Transactions Table */}
+      {/* Invoices Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -227,49 +228,42 @@ export default function Transactions() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {currentItems.length > 0 ? (
-                currentItems.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-gray-50">
+                currentItems.map((invoice) => (
+                  <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link 
-                        href={`/dashboard/transactions/${transaction.id}`}
+                        href={`/dashboard/invoices/${invoice.id}`}
                         className="hover:text-blue-600"
                       >
-                        {transaction.id}
+                        {invoice.id}
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(transaction.date)}
+                      {invoice.clientName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.description}
+                      {formatDate(invoice.issueDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.category}
+                      {formatDate(invoice.dueDate)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.account}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.type === 'Credit' ? '+' : '-'}{formatCurrency(transaction.amount).slice(1)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {formatCurrency(invoice.total)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        transaction.status === 'Completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {transaction.status}
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(invoice.status)}`}>
+                        {invoice.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 space-x-2">
                       <Link 
-                        href={`/dashboard/transactions/${transaction.id}/edit`}
+                        href={`/dashboard/invoices/${invoice.id}/edit`}
                         className="text-blue-600 hover:text-blue-800"
                       >
                         Edit
                       </Link>
                       <Link 
-                        href={`/dashboard/transactions/${transaction.id}`}
+                        href={`/dashboard/invoices/${invoice.id}`}
                         className="text-gray-600 hover:text-gray-800"
                       >
                         View
@@ -279,8 +273,8 @@ export default function Transactions() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No transactions found
+                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                    No invoices found
                   </td>
                 </tr>
               )}
@@ -291,7 +285,7 @@ export default function Transactions() {
         <div className="px-6 py-4 border-t">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-500">
-              Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, totalItems)}</span> of <span className="font-medium">{totalItems}</span> transactions
+              Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, totalItems)}</span> of <span className="font-medium">{totalItems}</span> invoices
             </div>
             <div className="flex space-x-2">
               <button 

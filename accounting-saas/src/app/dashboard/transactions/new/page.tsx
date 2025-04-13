@@ -38,14 +38,9 @@ export default function NewTransaction() {
       // Add the transaction to the store
       addTransaction(transactionData);
       
-      // Simulate API call delay and potential error
-      setTimeout(() => {
-        setSuccessMessage('Transaction created successfully!');
-        // Navigate back to transactions list after showing success message
-        setTimeout(() => {
-          router.push('/dashboard/transactions');
-        }, 500);
-      }, 800);
+      // Show success message and redirect immediately
+      setSuccessMessage('Transaction created successfully!');
+      router.push('/dashboard/transactions');
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
       setIsSubmitting(false);
