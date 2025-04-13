@@ -1,20 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { formatCurrency } from '@/utils/dateUtils';
 import useInvoiceStore from '@/utils/invoiceStore';
-
-type Client = {
-  name: string;
-  email: string;
-  address?: string;
-  totalBilled: number;
-  totalPaid: number;
-  totalOutstanding: number;
-  invoiceCount: number;
-  lastInvoiceDate: string;
-};
+import ClientSummary from '@/components/ClientSummary';
+import ClientSearch from '@/components/ClientSearch';
+import ClientList, { Client } from '@/components/ClientList';
 
 export default function Clients() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -126,11 +116,18 @@ export default function Clients() {
     }
   };
   
-  // Render sort indicator
-  const renderSortIndicator = (column: string) => {
-    if (sortBy !== column) return null;
-    return sortOrder === 'asc' ? '↑' : '↓';
+  // Handle viewing client invoices
+  const handleViewInvoices = (clientName: string) => {
+    // Filter invoices by client and open the first one
+    const clientInvoices = invoices.filter(inv => inv.clientName === clientName);
+    if (clientInvoices.length > 0) {
+      window.location.href = `/dashboard/invoices/${clientInvoices[0].id}`;
+    }
   };
+  
+  // Calculate total values for summary
+  const totalBilled = clients.reduce((sum, client) => sum + client.totalBilled, 0);
+  const totalOutstanding = clients.reduce((sum, client) => sum + client.totalOutstanding, 0);
   
   return (
     <div className="space-y-6">
@@ -141,138 +138,27 @@ export default function Clients() {
         </div>
       </div>
       
-      {/* Search and filters */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-grow">
-            <input
-              type="text"
-              placeholder="Search clients..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Search */}
+      <ClientSearch 
+        search={search} 
+        setSearch={setSearch} 
+      />
       
       {/* Clients table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('name')}
-                >
-                  Client Name {renderSortIndicator('name')}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('totalBilled')}
-                >
-                  Total Billed {renderSortIndicator('totalBilled')}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('totalOutstanding')}
-                >
-                  Outstanding {renderSortIndicator('totalOutstanding')}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('invoiceCount')}
-                >
-                  Invoices {renderSortIndicator('invoiceCount')}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('lastInvoiceDate')}
-                >
-                  Last Invoice {renderSortIndicator('lastInvoiceDate')}
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedClients.length > 0 ? (
-                sortedClients.map((client, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <div className="text-sm font-medium text-gray-900">{client.name}</div>
-                        <div className="text-sm text-gray-500">{client.email}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCurrency(client.totalBilled)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`text-sm ${client.totalOutstanding > 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                        {formatCurrency(client.totalOutstanding)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.invoiceCount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(client.lastInvoiceDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => {
-                          // Filter invoices by client and open the first one
-                          const clientInvoices = invoices.filter(inv => inv.clientName === client.name);
-                          if (clientInvoices.length > 0) {
-                            window.location.href = `/dashboard/invoices/${clientInvoices[0].id}`;
-                          }
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View Invoices
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                    {search ? 'No clients found matching your search' : 'No clients found'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ClientList 
+        clients={sortedClients}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        handleSort={handleSort}
+        onViewInvoices={handleViewInvoices}
+      />
       
       {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Total Clients</h2>
-          <p className="text-3xl font-bold text-blue-600">{clients.length}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Total Billed</h2>
-          <p className="text-3xl font-bold text-blue-600">
-            {formatCurrency(clients.reduce((sum, client) => sum + client.totalBilled, 0))}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Outstanding</h2>
-          <p className="text-3xl font-bold text-red-600">
-            {formatCurrency(clients.reduce((sum, client) => sum + client.totalOutstanding, 0))}
-          </p>
-        </div>
-      </div>
+      <ClientSummary 
+        totalClients={clients.length}
+        totalBilled={totalBilled}
+        totalOutstanding={totalOutstanding}
+      />
     </div>
   );
 } 

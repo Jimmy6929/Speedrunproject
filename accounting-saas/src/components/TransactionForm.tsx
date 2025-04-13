@@ -1,6 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// Define expense categories that will match the reports page
+const expenseCategories = [
+  'Office Rent',
+  'Utilities',
+  'Salaries & Payroll',
+  'Software & Subscriptions',
+  'Marketing & Advertising',
+  'Travel & Transportation',
+  'Office Supplies',
+  'Professional Services',
+  'Insurance',
+  'Equipment & Maintenance',
+  'Taxes',
+  'Meals & Entertainment',
+  'Training & Education',
+  'Miscellaneous'
+];
+
+// Define income categories
+const incomeCategories = [
+  'Sales Revenue',
+  'Consulting Services',
+  'Subscription Fees',
+  'Project Income',
+  'Refunds',
+  'Interest Income',
+  'Other Income'
+];
 
 type TransactionFormProps = {
   isEdit?: boolean;
@@ -29,7 +58,7 @@ export default function TransactionForm({
   const [formData, setFormData] = useState({
     date: initialData.date || new Date().toISOString().split('T')[0],
     description: initialData.description || '',
-    category: initialData.category || 'Income',
+    category: initialData.category || 'Sales Revenue',
     amount: initialData.amount || '',
     status: initialData.status || 'Completed',
     account: initialData.account || 'Main Account',
@@ -40,6 +69,21 @@ export default function TransactionForm({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Update category when transaction type changes
+  useEffect(() => {
+    if (formData.type === 'Credit' && !incomeCategories.includes(formData.category)) {
+      setFormData(prev => ({
+        ...prev,
+        category: incomeCategories[0]
+      }));
+    } else if (formData.type === 'Debit' && !expenseCategories.includes(formData.category)) {
+      setFormData(prev => ({
+        ...prev,
+        category: expenseCategories[0]
+      }));
+    }
+  }, [formData.type]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -91,6 +135,9 @@ export default function TransactionForm({
       case 'account':
         if (!formData.account) error = 'Account is required';
         break;
+      case 'category':
+        if (!formData.category) error = 'Category is required';
+        break;
     }
     
     setErrors(prev => ({
@@ -102,7 +149,7 @@ export default function TransactionForm({
   };
 
   const validate = () => {
-    const fieldNames = ['date', 'description', 'amount', 'account'];
+    const fieldNames = ['date', 'description', 'amount', 'account', 'category'];
     let isValid = true;
     
     // Validate all required fields
@@ -244,14 +291,24 @@ export default function TransactionForm({
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onBlur={handleBlur}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                touchedFields.category && errors.category ? 'border-red-500' : 'border-gray-300'
+              }`}
             >
-              <option value="Income">Income</option>
-              <option value="Expense">Expense</option>
-              <option value="Transfer">Transfer</option>
-              <option value="Investment">Investment</option>
-              <option value="Other">Other</option>
+              {formData.type === 'Credit' ? (
+                // Income categories
+                incomeCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))
+              ) : (
+                // Expense categories
+                expenseCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))
+              )}
             </select>
+            {touchedFields.category && errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
           </div>
           
           <div>
