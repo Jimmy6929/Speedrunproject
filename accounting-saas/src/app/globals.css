@@ -3,6 +3,33 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --card-text: #171717;
+  --card-text-secondary: #6b7280;
+  --tab-active: #2563eb;
+  --tab-inactive: #6b7280;
+  --nav-active-bg: #e5e7eb;
+  --button-text: #ffffff;
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #f9fafb;
+  --card-bg: #1e1e1e;
+  --input-bg: #2d2d2d;
+  --input-border: #4b5563;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --card-text: #f3f4f6;
+  --card-text-secondary: #d1d5db;
+  --tab-active: #3b82f6;
+  --tab-inactive: #9ca3af;
+  --nav-active-bg: #374151;
+  --button-text: #ffffff;
 }
 
 @theme inline {
@@ -13,9 +40,20 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not(.light) {
+    --background: #121212;
+    --foreground: #f9fafb;
+    --card-bg: #1e1e1e;
+    --input-bg: #2d2d2d;
+    --input-border: #4b5563;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --card-text: #f3f4f6;
+    --card-text-secondary: #d1d5db;
+    --tab-active: #3b82f6;
+    --tab-inactive: #9ca3af;
+    --nav-active-bg: #374151;
+    --button-text: #ffffff;
   }
 }
 
@@ -23,4 +61,132 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Base dark mode styling */
+.dark .bg-white {
+  background-color: var(--card-bg);
+}
+
+.dark .text-gray-900 {
+  color: var(--card-text);
+}
+
+.dark .text-gray-700, .dark .text-gray-500 {
+  color: var(--card-text-secondary);
+}
+
+.dark .border-gray-200, .dark .border-gray-300 {
+  border-color: var(--input-border);
+}
+
+.dark input, .dark select, .dark textarea {
+  background-color: var(--input-bg);
+  color: var(--foreground);
+  border-color: var(--input-border);
+}
+
+.dark .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6), 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Color utilities */
+.dark .bg-blue-600 {
+  background-color: var(--primary);
+}
+
+.dark .hover\:bg-blue-700:hover, .dark .bg-blue-600:hover {
+  background-color: var(--primary-hover);
+}
+
+.dark .text-blue-600 {
+  color: var(--primary);
+}
+
+.dark .border-blue-500 {
+  border-color: var(--primary);
+}
+
+.dark .focus\:ring-blue-500:focus {
+  --tw-ring-color: var(--primary);
+}
+
+.dark .focus\:border-blue-500:focus {
+  border-color: var(--primary);
+}
+
+/* Settings page specific fixes */
+.dark .border-b.border-gray-200 {
+  border-color: var(--input-border);
+}
+
+.dark .text-gray-500.hover\:text-gray-700.hover\:border-gray-300 {
+  color: var(--tab-inactive);
+}
+
+.dark .text-gray-500.hover\:text-gray-700.hover\:border-gray-300:hover {
+  color: var(--foreground);
+  border-color: var(--tab-inactive);
+}
+
+.dark .border-blue-500.text-blue-600 {
+  border-color: var(--tab-active);
+  color: var(--tab-active);
+}
+
+.dark .bg-gray-50 {
+  background-color: var(--background);
+}
+
+.dark .bg-gray-100 {
+  background-color: #2d2d2d;
+}
+
+.dark .text-gray-800 {
+  color: var(--foreground);
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: #2d2d2d;
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: #374151;
+}
+
+/* Button styling */
+.dark .bg-blue-600.text-white {
+  color: var(--button-text);
+}
+
+/* Input colors */
+.dark .bg-white.p-2, .dark .bg-white.py-2 {
+  background-color: var(--card-bg);
+}
+
+/* Table styling */
+.dark thead.bg-gray-50 {
+  background-color: #1a1a1a;
+}
+
+.dark tbody.bg-white {
+  background-color: var(--card-bg);
+}
+
+.dark tr.hover\:bg-gray-50:hover {
+  background-color: #2d2d2d;
+}
+
+/* Sidebar */
+.dark .bg-white.w-64 {
+  background-color: #1a1a1a;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: var(--nav-active-bg);
+}
+
+/* Chart Container Backgrounds */
+.dark .h-80 {
+  background-color: var(--card-bg);
 }

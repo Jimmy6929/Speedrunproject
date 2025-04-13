@@ -1,4 +1,10 @@
+'use client';
+
+import { useSettings } from '@/context/SettingsContext';
+
 export default function Dashboard() {
+  const { formatCurrency, formatDate } = useSettings();
+  
   return (
     <div className="space-y-6">
       <div>
@@ -13,7 +19,7 @@ export default function Dashboard() {
             <h2 className="text-sm text-gray-500 font-medium">Total Revenue</h2>
             <span className="text-green-500 bg-green-100 p-1 rounded">+12.5%</span>
           </div>
-          <p className="text-2xl font-bold mt-2">$24,780.90</p>
+          <p className="text-2xl font-bold mt-2">{formatCurrency(24780.90)}</p>
           <p className="text-gray-500 text-sm mt-2">For current month</p>
         </div>
 
@@ -22,7 +28,7 @@ export default function Dashboard() {
             <h2 className="text-sm text-gray-500 font-medium">Total Expenses</h2>
             <span className="text-red-500 bg-red-100 p-1 rounded">+2.3%</span>
           </div>
-          <p className="text-2xl font-bold mt-2">$12,450.20</p>
+          <p className="text-2xl font-bold mt-2">{formatCurrency(12450.20)}</p>
           <p className="text-gray-500 text-sm mt-2">For current month</p>
         </div>
 
@@ -31,7 +37,7 @@ export default function Dashboard() {
             <h2 className="text-sm text-gray-500 font-medium">Outstanding Invoices</h2>
             <span className="text-yellow-500 bg-yellow-100 p-1 rounded">4 due</span>
           </div>
-          <p className="text-2xl font-bold mt-2">$8,325.60</p>
+          <p className="text-2xl font-bold mt-2">{formatCurrency(8325.60)}</p>
           <p className="text-gray-500 text-sm mt-2">Total outstanding</p>
         </div>
 
@@ -40,7 +46,7 @@ export default function Dashboard() {
             <h2 className="text-sm text-gray-500 font-medium">Cash Flow</h2>
             <span className="text-green-500 bg-green-100 p-1 rounded">+5.2%</span>
           </div>
-          <p className="text-2xl font-bold mt-2">$12,330.70</p>
+          <p className="text-2xl font-bold mt-2">{formatCurrency(12330.70)}</p>
           <p className="text-gray-500 text-sm mt-2">Net for month</p>
         </div>
       </div>
@@ -62,9 +68,9 @@ export default function Dashboard() {
             <tbody className="bg-white divide-y divide-gray-200">
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#INV-001</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">25 May 2023</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate('2023-05-25')}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Invoice payment - Client A</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$2,500.00</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(2500.00)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                     Completed
@@ -73,9 +79,9 @@ export default function Dashboard() {
               </tr>
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#EXP-047</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">24 May 2023</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate('2023-05-24')}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Office supplies</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">-$350.20</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(-350.20)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                     Completed
@@ -84,9 +90,9 @@ export default function Dashboard() {
               </tr>
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#INV-002</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">22 May 2023</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate('2023-05-22')}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Invoice payment - Client B</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$1,750.00</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(1750.00)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                     Pending

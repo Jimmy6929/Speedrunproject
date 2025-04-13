@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import useInvoiceStore, { Invoice } from '@/utils/invoiceStore';
-import useTransactionStore, { Transaction } from '@/utils/transactionStore';
+import { useState, useEffect } from 'react';
+import useInvoiceStore from '@/utils/invoiceStore';
+import { useSettings } from '@/context/SettingsContext';
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -16,7 +16,7 @@ import {
   LineElement,
   RadialLinearScale
 } from 'chart.js';
-import { Bar, Radar, PolarArea, Pie, Doughnut } from 'react-chartjs-2';
+import { Bar, Radar, PolarArea } from 'react-chartjs-2';
 
 // Register ChartJS components
 ChartJS.register(
@@ -32,19 +32,38 @@ ChartJS.register(
   RadialLinearScale
 );
 
-// Helper functions
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-};
-
 export default function Analytics() {
   const invoices = useInvoiceStore(state => state.invoices);
-  const transactions = useTransactionStore(state => state.transactions);
+  const { formatCurrency, formatDate, preferences } = useSettings();
   const [timeRange, setTimeRange] = useState('all'); // 'all', '6m', '1y'
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
+  // Check if dark mode is active
+  useEffect(() => {
+    const updateTheme = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+    
+    // Initial check
+    updateTheme();
+    
+    // Set up a MutationObserver to watch for class changes on the html element
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          updateTheme();
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [preferences.theme]);
+
   // Calculate date ranges
   const now = new Date();
   const sixMonthsAgo = new Date();
@@ -61,16 +80,7 @@ export default function Analytics() {
     return invoices.filter(inv => new Date(inv.issueDate) >= cutoffDate);
   };
   
-  // Filter transactions based on time range
-  const getFilteredTransactions = () => {
-    if (timeRange === 'all') return transactions;
-    
-    const cutoffDate = timeRange === '6m' ? sixMonthsAgo : oneYearAgo;
-    return transactions.filter(trx => new Date(trx.date) >= cutoffDate);
-  };
-  
   const filteredInvoices = getFilteredInvoices();
-  const filteredTransactions = getFilteredTransactions();
   
   // Calculate analytics
   const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + inv.total, 0);
@@ -78,24 +88,6 @@ export default function Analytics() {
   const paidCount = filteredInvoices.filter(inv => inv.status === 'Paid').length;
   const unpaidCount = filteredInvoices.filter(inv => inv.status === 'Unpaid' || inv.status === 'Overdue').length;
   const paymentRate = (paidCount / (filteredInvoices.length || 1)) * 100;
-  const totalIncome = filteredTransactions.filter(t => t.type === 'Credit').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = filteredTransactions.filter(t => t.type === 'Debit').reduce((sum, t) => sum + t.amount, 0);
-  const netCashFlow = totalIncome - totalExpenses;
-  
-  // Calculate financial health metrics
-  const liquidityRatio = totalIncome > 0 ? totalIncome / (totalExpenses || 1) : 0;
-  const profitMargin = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : 0;
-  
-  // Mock budget data (in a real app, this would come from a budget store)
-  const mockBudget = {
-    Income: 10000,
-    Expense: 8000,
-    'Office rent payment': 1000,
-    'Software subscription': 200,
-    'Office supplies': 300,
-    'Utility bill payment': 500,
-    'Employee salaries': 6000
-  };
   
   // Group invoices by client
   const clientData = filteredInvoices.reduce((acc, inv) => {
@@ -120,41 +112,45 @@ export default function Analytics() {
     .sort((a, b) => b[1].value - a[1].value)
     .slice(0, 5);
   
-  // Group transactions by category
-  const categoryData = filteredTransactions.reduce((acc, trx) => {
-    if (!acc[trx.category]) {
-      acc[trx.category] = {
-        count: 0,
-        value: 0,
-      };
-    }
-    acc[trx.category].count += 1;
-    acc[trx.category].value += trx.amount;
-    return acc;
-  }, {} as Record<string, { count: number; value: number }>);
-  
-  // Get top 5 categories by count
-  const topCategoriesByCount = Object.entries(categoryData)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 5);
-  
-  // Get top 5 categories by value
-  const topCategoriesByValue = Object.entries(categoryData)
-    .sort((a, b) => b[1].value - a[1].value)
-    .slice(0, 5);
+  // Chart colors based on theme
+  const chartTextColor = isDarkMode ? '#f9fafb' : '#171717';
+  const chartGridColor = isDarkMode ? '#4b5563' : '#e5e7eb';
   
   // Client revenue distribution for Radar chart
   const clientDistributionData = {
     labels: topClientsByValue.map(([name]) => name),
     datasets: [
       {
-        label: 'Revenue ($)',
+        label: `Revenue (${preferences.currency})`,
         data: topClientsByValue.map(([_, data]) => data.value),
         backgroundColor: 'rgba(54, 162, 235, 0.2)',
         borderColor: 'rgb(54, 162, 235)',
         borderWidth: 1,
       },
     ],
+  };
+  
+  const radarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        beginAtZero: true,
+        grid: {
+          color: chartGridColor,
+        },
+        pointLabels: {
+          color: chartTextColor,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: chartTextColor,
+        },
+      },
+    },
   };
   
   // Invoice status distribution
@@ -184,23 +180,16 @@ export default function Analytics() {
     ],
   };
   
-  // Transaction type distribution
-  const transactionTypeData = {
-    labels: ['Income', 'Expense'],
-    datasets: [
-      {
-        label: 'Transactions by Type',
-        data: [
-          filteredTransactions.filter(trx => trx.type === 'Credit').length,
-          filteredTransactions.filter(trx => trx.type === 'Debit').length,
-        ],
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.5)',
-          'rgba(255, 99, 132, 0.5)',
-        ],
-        borderWidth: 1,
+  const polarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: chartTextColor,
+        },
       },
-    ],
+    },
   };
   
   // Calculate average time to payment
@@ -267,83 +256,34 @@ export default function Analytics() {
     ],
   };
   
-  // Expense categories for Pie chart
-  const expenseCategoriesData = {
-    labels: topCategoriesByValue
-      .filter(([cat, _]) => filteredTransactions.some(t => t.type === 'Debit' && t.category === cat))
-      .map(([cat, _]) => cat),
-    datasets: [
-      {
-        label: 'Expenses by Category',
-        data: topCategoriesByValue
-          .filter(([cat, _]) => filteredTransactions.some(t => t.type === 'Debit' && t.category === cat))
-          .map(([_, data]) => data.value),
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.5)',
-          'rgba(54, 162, 235, 0.5)',
-          'rgba(255, 206, 86, 0.5)',
-          'rgba(75, 192, 192, 0.5)',
-          'rgba(153, 102, 255, 0.5)',
-        ],
+  const barOptions = {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: chartGridColor,
+        },
+        ticks: {
+          color: chartTextColor,
+        },
       },
-    ],
-  };
-  
-  // Budget vs Actual for expense categories
-  const getBudgetVsActualData = () => {
-    const relevantCategories = topCategoriesByValue
-      .filter(([cat, _]) => filteredTransactions.some(t => t.type === 'Debit' && t.category === cat))
-      .map(([cat, _]) => cat)
-      .filter(cat => mockBudget[cat] !== undefined); // Only include categories with budgets
-    
-    const actualValues = relevantCategories.map(cat => {
-      return filteredTransactions
-        .filter(t => t.type === 'Debit' && t.category === cat)
-        .reduce((sum, t) => sum + t.amount, 0);
-    });
-    
-    const budgetValues = relevantCategories.map(cat => mockBudget[cat] || 0);
-    
-    return {
-      labels: relevantCategories,
-      actualValues,
-      budgetValues
-    };
-  };
-  
-  const budgetData = getBudgetVsActualData();
-  
-  const budgetVsActualData = {
-    labels: budgetData.labels,
-    datasets: [
-      {
-        label: 'Actual',
-        data: budgetData.actualValues,
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-      },
-      {
-        label: 'Budget',
-        data: budgetData.budgetValues,
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+      x: {
+        grid: {
+          color: chartGridColor,
+        },
+        ticks: {
+          color: chartTextColor,
+        },
       }
-    ],
-  };
-  
-  // Overall budget vs actual
-  const overallBudgetVsActual = {
-    labels: ['Income', 'Expenses'],
-    datasets: [
-      {
-        label: 'Actual',
-        data: [totalIncome, totalExpenses],
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: chartTextColor,
+        },
       },
-      {
-        label: 'Budget',
-        data: [mockBudget.Income || 0, mockBudget.Expense || 0],
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-      }
-    ],
+    },
   };
   
   return (
@@ -389,34 +329,28 @@ export default function Analytics() {
         </div>
       </div>
       
-      {/* Financial Health Metrics */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Net Cash Flow</p>
-              <p className={`text-2xl font-bold text-gray-900 mt-1 ${
-                netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>{formatCurrency(netCashFlow)}</p>
+              <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(totalRevenue)}</p>
             </div>
-            <div className={`p-3 rounded-full ${
-              netCashFlow >= 0 ? 'bg-green-100' : 'bg-red-100'
-            }`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${
-                netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'
-              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-blue-100 p-3 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
-          <p className="text-sm text-gray-500 mt-2">Total income minus expenses</p>
+          <p className="text-sm text-gray-500 mt-2">{filteredInvoices.length} invoices</p>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Profit Margin</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{profitMargin.toFixed(1)}%</p>
+              <p className="text-sm font-medium text-gray-500">Average Invoice</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(avgInvoiceValue)}</p>
             </div>
             <div className="bg-green-100 p-3 rounded-full">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -424,22 +358,7 @@ export default function Analytics() {
               </svg>
             </div>
           </div>
-          <p className="text-sm text-gray-500 mt-2">Net income / Total income</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Liquidity Ratio</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{liquidityRatio.toFixed(2)}x</p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-gray-500 mt-2">Income to expense ratio</p>
+          <p className="text-sm text-gray-500 mt-2">Per invoice average</p>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow">
@@ -448,97 +367,39 @@ export default function Analytics() {
               <p className="text-sm font-medium text-gray-500">Payment Rate</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{paymentRate.toFixed(1)}%</p>
             </div>
+            <div className="bg-purple-100 p-3 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">{paidCount} of {filteredInvoices.length} invoices paid</p>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Avg. Time to Payment</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{Math.round(avgTimeToPayment)} days</p>
+            </div>
             <div className="bg-yellow-100 p-3 rounded-full">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
-          <p className="text-sm text-gray-500 mt-2">{paidCount} of {filteredInvoices.length} invoices paid</p>
+          <p className="text-sm text-gray-500 mt-2">From issue to payment</p>
         </div>
       </div>
       
-      {/* Budget vs Actual */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Overall Budget vs Actual</h2>
-          <Bar 
-            data={overallBudgetVsActual}
-            options={{
-              responsive: true,
-              scales: {
-                y: {
-                  beginAtZero: true,
-                },
-              },
-            }}
-          />
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Category Budget vs Actual</h2>
-          <div className="h-80">
-            <Bar 
-              data={budgetVsActualData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                  },
-                },
-              }}
-            />
-          </div>
-        </div>
-      </div>
-      
-      {/* Transaction Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Transaction Types</h2>
-          <div className="h-64">
-            <Doughnut 
-              data={transactionTypeData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-              }}
-            />
-          </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Expense Categories</h2>
-          <div className="h-64">
-            <Pie 
-              data={expenseCategoriesData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-      
-      {/* Client & Invoice Charts */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Client Revenue Distribution</h2>
           <div className="h-80">
             <Radar 
               data={clientDistributionData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  r: {
-                    beginAtZero: true,
-                  },
-                },
-              }}
+              options={radarOptions}
             />
           </div>
         </div>
@@ -548,42 +409,27 @@ export default function Analytics() {
           <div className="h-80">
             <PolarArea 
               data={statusData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-              }}
+              options={polarOptions}
             />
           </div>
         </div>
       </div>
       
-      {/* Time & Value Analysis */}
+      {/* Monthly Average Invoice Value */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Monthly Average Invoice Value</h2>
         <Bar 
           data={avgInvoiceValueData}
-          options={{
-            responsive: true,
-            scales: {
-              y: {
-                beginAtZero: true,
-              },
-            },
-          }}
+          options={barOptions}
         />
-        <div className="mt-4 text-center">
-          <div className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-            Avg. Time to Payment: {Math.round(avgTimeToPayment)} days
-          </div>
-        </div>
       </div>
       
-      {/* Top Data Sections */}
+      {/* Top Clients */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Top Clients by Revenue</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Top Clients by Invoice Count</h2>
           <div className="space-y-4">
-            {topClientsByValue.map(([name, data], index) => (
+            {topClientsByCount.map(([name, data], index) => (
               <div key={name} className="flex items-center">
                 <div className="w-8 text-gray-500 font-medium">{index + 1}.</div>
                 <div className="flex-1">
@@ -597,19 +443,17 @@ export default function Analytics() {
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Top Expense Categories</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Top Clients by Revenue</h2>
           <div className="space-y-4">
-            {topCategoriesByValue
-              .filter(([cat, _]) => filteredTransactions.some(t => t.type === 'Debit' && t.category === cat))
-              .map(([category, data], index) => (
-                <div key={category} className="flex items-center">
-                  <div className="w-8 text-gray-500 font-medium">{index + 1}.</div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">{category}</div>
-                    <div className="text-sm text-gray-500">{data.count} transactions</div>
-                  </div>
-                  <div className="text-sm font-medium text-gray-900">{formatCurrency(data.value)}</div>
+            {topClientsByValue.map(([name, data], index) => (
+              <div key={name} className="flex items-center">
+                <div className="w-8 text-gray-500 font-medium">{index + 1}.</div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-900">{name}</div>
+                  <div className="text-sm text-gray-500">{data.count} invoices</div>
                 </div>
+                <div className="text-sm font-medium text-gray-900">{formatCurrency(data.value)}</div>
+              </div>
             ))}
           </div>
         </div>

@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { formatDate, formatCurrency } from '@/utils/dateUtils';
+import { formatDate } from '@/utils/dateUtils';
 import useInvoiceStore from '@/utils/invoiceStore';
+import { useSettings } from '@/context/SettingsContext';
 
 export default function Invoices() {
   const router = useRouter();
   const invoices = useInvoiceStore(state => state.invoices);
+  const { formatCurrency, formatDate: formatDateSettings } = useSettings();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('issueDate');
@@ -149,7 +151,7 @@ export default function Invoices() {
 
       {/* Filters and Actions */}
       <div className="bg-white p-4 rounded-lg shadow space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="flex-1">
             <input
               type="text"
@@ -162,7 +164,7 @@ export default function Invoices() {
               }}
             />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="flex items-center gap-2">
             <select 
               className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
@@ -198,16 +200,14 @@ export default function Invoices() {
               <option value="client-asc">Client (A-Z)</option>
               <option value="client-desc">Client (Z-A)</option>
             </select>
+            
+            <Link 
+              href="/dashboard/invoices/new"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              + Create Invoice
+            </Link>
           </div>
-        </div>
-        
-        <div className="flex justify-end">
-          <Link 
-            href="/dashboard/invoices/new"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            + Create Invoice
-          </Link>
         </div>
       </div>
 
@@ -242,10 +242,10 @@ export default function Invoices() {
                       {invoice.clientName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(invoice.issueDate)}
+                      {formatDateSettings(invoice.issueDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(invoice.dueDate)}
+                      {formatDateSettings(invoice.dueDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(invoice.total)}
