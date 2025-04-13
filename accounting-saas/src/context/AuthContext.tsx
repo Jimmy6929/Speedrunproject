@@ -76,10 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_user');
     setUser(null);
     setIsAuthenticated(false);
-    router.push('/login');
+    
+    // Don't reset dark mode preference when logging out
+    // Retain the user's preferred theme
+
+    // Store logout in localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   return (

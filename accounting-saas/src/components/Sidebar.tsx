@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useNotifications } from '@/context/NotificationContext';
 
@@ -89,14 +90,40 @@ export default function Sidebar() {
   return (
     <aside className="bg-white dark:bg-gray-900 h-full w-64 border-r border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">Account Hub</h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Financial Management</p>
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-16 relative flex-shrink-0">
+            <Image 
+              src={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') 
+                ? '/specount101-logo-dark.png' 
+                : '/specount101-logo.png'
+              }
+              alt="Specount101" 
+              width={70} 
+              height={70}
+              className="animate-pulse-subtle rounded-md"
+              priority
+            />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">Account Hub</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Financial Management</p>
+          </div>
+        </div>
       </div>
       
       <nav className="mt-4">
         <ul className="space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            // Check for exact match or exact match plus one level of subdirectory
+            let isActive = false;
+            
+            if (item.href === '/dashboard') {
+              // Special case for dashboard - only highlight when exactly at /dashboard
+              isActive = pathname === '/dashboard';
+            } else {
+              // For other pages, check for exact match
+              isActive = pathname === item.href;
+            }
             
             return (
               <li key={item.href}>
