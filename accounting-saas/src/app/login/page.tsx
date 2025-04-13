@@ -240,7 +240,11 @@ export default function Login() {
           </h2>
           <p className={`mt-2 text-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             Or{' '}
-            <a href="#" className={`font-medium transition-colors duration-300
+            <a 
+              href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley" 
+              target="_blank"
+              rel="noopener noreferrer" 
+              className={`font-medium transition-colors duration-300
               ${isDarkMode 
                 ? 'text-blue-400 hover:text-blue-300' 
                 : 'text-blue-600 hover:text-blue-500'
